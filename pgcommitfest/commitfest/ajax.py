@@ -6,6 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db import transaction
 
+from codecs import decode
+from email.header import decode_header
+
 import httplib
 import socket
 import urllib
@@ -53,6 +56,15 @@ def _archivesAPI(suburl, params=None):
 		h.close()
 	except socket.error, e:
 		raise Http503("Failed to communicate with archives backend: %s" % e)
+
+	# MIME-decode possibly-encoded headers
+	for m in r:
+		for h in ('from','to','cc','subj'):
+			try:
+				m[h] = ''.join([decode(v, c if c else 'ascii') for (v, c) in decode_header(m[h])])
+			except:
+				# Do nothing if the header doesn't exist or the decode fails
+				pass
 	return r
 
 def getThreads(request):
