@@ -319,6 +319,11 @@ def _review_status_string(reviewstatus):
 	else:
 		return "not tested"
 
+def _user_email_header(user):
+	return formataddr((
+		str(Header(u"%s %s" % (user.first_name, user.last_name), 'utf-8')),
+		UserWrapper(user).email))
+
 @login_required
 @transaction.atomic
 def comment(request, cfid, patchid, what):
@@ -366,12 +371,12 @@ def comment(request, cfid, patchid, what):
 				msg['Subject'] = 'Re: %s' % form.thread.subject
 
 			msg['To'] = settings.HACKERS_EMAIL
-			msg['From'] = formataddr((str(Header(u"%s %s" % (request.user.first_name, request.user.last_name), 'utf-8')), UserWrapper(request.user).email))
+			msg['From'] = _user_email_header(request.user)
 
 			# CC the authors of a patch, if there are any
 			authors = list(patch.authors.all())
 			if len(authors):
-				msg['Cc'] = ", ".join(["%s %s <%s>" % (a.first_name, a.last_name, UserWrapper(a).email) for a in authors])
+				msg['Cc'] = ", ".join([_user_email_header(a) for a in authors])
 
 			msg['Date'] = formatdate(localtime=True)
 			msg['User-Agent'] = 'pgcommitfest'
